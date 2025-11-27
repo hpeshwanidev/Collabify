@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Collabify - Create Chat Room</title>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Collabify</h1>
+    <form id="createRoomForm">
+      <label for="roomName">Room Name</label>
+      <input type="text" id="roomName" name="roomName" required placeholder="Enter Room Name" />
+      <button type="submit">Create Room</button>
+    </form>
+    <div id="roomLink" style="display:none; margin-top: 20px;">
+      <p style="color: #28a745; font-weight: bold;">Room Created!</p>
+      <p>Share this link:</p>
+      <input type="text" id="shareableLink" readonly style="width: 100%; margin-bottom: 10px;" />
+      <button onclick="copyLink()">Copy Link</button>
+      <button onclick="joinCreatedRoom()" style="background-color: #28a745;">Join Room</button>
+    </div>
+  </div>
+
+  <script>
+    const createRoomForm = document.getElementById('createRoomForm');
+    const roomLink = document.getElementById('roomLink');
+    const shareableLink = document.getElementById('shareableLink');
+    let createdRoomId = null;
+
+    createRoomForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const roomName = document.getElementById('roomName').value.trim();
+      
+      if (roomName) {
+        try {
+          // Call backend to create room
+          const response = await fetch('/api/create-room', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomName })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            createdRoomId = data.roomId;
+            const link = `${window.location.origin}/room/${data.roomId}`;
+            shareableLink.value = link;
+            createRoomForm.style.display = 'none';
+            roomLink.style.display = 'block';
+          } else {
+            alert('Failed to create room');
+          }
+        } catch (error) {
+          console.error('Error creating room:', error);
+          alert('Error creating room');
+        }
+      }
+    });
+
+    function copyLink() {
+      shareableLink.select();
+      document.execCommand('copy');
+      alert('Link copied to clipboard!');
+    }
+
+    function joinCreatedRoom() {
+      if (createdRoomId) {
+        window.location.href = `/room/${createdRoomId}`;
+      }
+    }
+  </script>
+</body>
+</html>

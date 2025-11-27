@@ -18,6 +18,7 @@ io.on('connection', (socket) => {
         socket.join(room);
         users[socket.id] = { username, room };
 
+        
         // Send user list to room
         const roomUsers = Object.values(users).filter(user => user.room === room);
         io.to(room).emit('roomUsers', {
@@ -25,7 +26,8 @@ io.on('connection', (socket) => {
             users: roomUsers.map(user => user.username)
         });
 
-        // Broadcast to room that user has joined
+        
+        //  Broadcast to room that user has joined
         socket.to(room).emit('message', {
             username: 'System',
             text: `${username} has joined the chat`
