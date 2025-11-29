@@ -1,23 +1,77 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ChatList from "../components/ChatList";
 import ChatWindow from "../components/ChatWindow";
+import axios from "axios";
 
-export default function ChatPage({ user, token }) {
+const API_URL = "http://localhost:3001";
+
+export default function ChatPage({ user, token, onLogout }) {
   const [activeChatId, setActiveChatId] = useState(null);
+  const [activeChat, setActiveChat] = useState(null);
+
+  // Fetch active chat details when activeChatId changes
+  useEffect(() => {
+    const fetchChatDetails = async () => {
+      if (!activeChatId || !token) {
+        setActiveChat(null);
+        return;
+      }
+
+      try {
+        const res = await axios.get(`${API_URL}/chats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        const chat = res.data.find(c => c._id === activeChatId);
+        setActiveChat(chat || null);
+      } catch (e) {
+        console.error("Error fetching chat details:", e);
+      }
+    };
+
+    fetchChatDetails();
+  }, [activeChatId, token]);
 
   return (
     <div
       style={{
         display: "flex",
-        width: "100%",
-        maxWidth: "1200px",
-        height: "80vh",
+        width: "100vw",
+        height: "100vh",
         background: "#020617",
-        borderRadius: "16px",
         overflow: "hidden",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
       }}
     >
+      {/* Logout Button - Top Right */}
+      <button
+        onClick={onLogout}
+        style={{
+          position: "absolute",
+          top: "20px",
+          right: "20px",
+          padding: "10px 20px",
+          borderRadius: "8px",
+          border: "1px solid #334155",
+          background: "#1e293b",
+          color: "#e2e8f0",
+          fontSize: "14px",
+          fontWeight: "500",
+          cursor: "pointer",
+          zIndex: 100,
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.background = "#334155";
+          e.target.style.borderColor = "#475569";
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.background = "#1e293b";
+          e.target.style.borderColor = "#334155";
+        }}
+      >
+        Logout
+      </button>
+
       <ChatList
         user={user}
         token={token}
@@ -28,6 +82,7 @@ export default function ChatPage({ user, token }) {
         user={user}
         token={token}
         activeChatId={activeChatId}
+        activeChat={activeChat}
       />
     </div>
   );
