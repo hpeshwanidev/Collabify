@@ -5,37 +5,80 @@ const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 require('dotenv').config();
 const authRoutes = require('./src/routes/auth.js');
-const chatRoutes = require('./src/routes/chats.js'); // adjust path as you use
+const chatRoutes = require('./src/routes/chats.js');
 const messageRoutes = require('./src/routes/messages');
+const userRoutes = require('./src/routes/users');
+const Message = require('./src/models/Message');
+const Chat = require('./src/models/Chat');
 
 const app = express();
 const server = http.createServer(app);
 
-// Middleware (handles incoming requests)
-app.use(cors()); // Allows frontend to connect
-app.use(express.json()); // Parses JSON bodies
-app.use('/auth',authRoutes);
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use('/auth', authRoutes);
 app.use('/chats', chatRoutes);
 app.use('/messages', messageRoutes);
+app.use('/users', userRoutes);
+// app.use('/chats', require('./routes/chats'));
+// app.use('/users', require('./routes/users'));
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // your React dev URL
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST'],
   },
 });
 
+// Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('New client connected', socket.id);
+  console.log('✅ New client connected:', socket.id);
 
-  // simple broadcast for now
-  socket.on('message', (msg) => {
-    // later: save to DB, include chatId, sender, etc.
-    io.emit('message', msg);
+  // Join a specific chat room
+  socket.on('joinChat', (chatId) => {
+    socket.join(chatId);
+    console.log(`User ${socket.id} joined chat: ${chatId}`);
+  });
+
+  // Handle incoming messages
+  socket.on('sendMessage', async ({ chatId, senderId, content }) => {
+    try {
+      console.log('📩 Message received:', { chatId, senderId, content });
+
+      // Save message to database
+      const message = await Message.create({
+        chat: chatId,
+        sender: senderId,
+        content,
+      });
+
+      // Populate sender info
+      await message.populate('sender', 'username');
+
+      // Update chat's latestMessage
+      await Chat.findByIdAndUpdate(chatId, {
+        latestMessage: message._id,
+      });
+
+      // Emit to all users in this chat room
+      io.to(chatId).emit('newMessage', {
+        _id: message._id,
+        chat: message.chat,
+        sender: message.sender,
+        content: message.content,
+        createdAt: message.createdAt,
+      });
+
+      console.log('✅ Message saved and emitted');
+    } catch (error) {
+      console.error('❌ Error saving message:', error);
+      socket.emit('messageError', { error: 'Failed to send message' });
+    }
   });
 
   socket.on('disconnect', () => {
-    console.log('Client disconnected', socket.id);
+    console.log('❌ Client disconnected:', socket.id);
   });
 });
 
