@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import ChatList from "../components/ChatList";
 import ChatWindow from "../components/ChatWindow";
+import SprintBoard from "../components/SprintBoard";
+import Sidebar from "../components/SideBar";
 import axios from "axios";
 
 const API_URL = "http://localhost:3001";
@@ -8,6 +10,7 @@ const API_URL = "http://localhost:3001";
 export default function ChatPage({ user, token, onLogout }) {
   const [activeChatId, setActiveChatId] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
+  const [activeView, setActiveView] = useState('chat'); // 'chat' or 'sprint'
 
   // Fetch active chat details when activeChatId changes
   useEffect(() => {
@@ -72,18 +75,32 @@ export default function ChatPage({ user, token, onLogout }) {
         Logout
       </button>
 
-      <ChatList
+      {/* Sidebar */}
+      <Sidebar 
+        activeView={activeView} 
+        onViewChange={setActiveView} 
         user={user}
-        token={token}
-        activeChatId={activeChatId}
-        onSelectChat={setActiveChatId}
       />
-      <ChatWindow
-        user={user}
-        token={token}
-        activeChatId={activeChatId}
-        activeChat={activeChat}
-      />
+
+      {/* Main Content */}
+      {activeView === 'chat' ? (
+        <>
+          <ChatList
+            user={user}
+            token={token}
+            activeChatId={activeChatId}
+            onSelectChat={setActiveChatId}
+          />
+          <ChatWindow
+            user={user}
+            token={token}
+            activeChatId={activeChatId}
+            activeChat={activeChat}
+          />
+        </>
+      ) : (
+        <SprintBoard user={user} token={token} />
+      )}
     </div>
   );
 }
