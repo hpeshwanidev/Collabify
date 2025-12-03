@@ -1,5 +1,6 @@
 const express = require('express');
 const Chat = require('../models/Chat');
+const Message = require('../models/Message');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -57,6 +58,33 @@ router.post('/create', auth, async (req, res) => {
   }
 });
 
+// Delete a chat by ID
+router.delete('/:chatId', auth, async (req, res) => {
+  try {
+    const chat = await Chat.findById(req.params.chatId);
+    
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
 
+    // Verify the user is part of the chat
+    if (!chat.users.includes(req.user.id)) {
+      return res.status(403).json({ error: 'Unauthorized to delete this chat' });
+    }
+
+    // Delete all messages associated with this chat
+    await Message.deleteMany({ chat: req.params.chatId });
+    console.log(`🗑️ Deleted messages for chat: ${req.params.chatId}`);
+
+    // Delete the chat
+    await Chat.findByIdAndDelete(req.params.chatId);
+    console.log(`🗑️ Chat deleted: ${req.params.chatId}`);
+
+    res.json({ message: 'Chat deleted successfully' });
+  } catch (e) {
+    console.error('❌ Error deleting chat:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 module.exports = router;
