@@ -7,6 +7,7 @@ const API_URL = "http://localhost:3001";
 export default function ChatList({ user, token, activeChatId, onSelectChat }) {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingChatId, setDeletingChatId] = useState(null);
 
   useEffect(() => {
     fetchChats();
@@ -44,6 +45,38 @@ export default function ChatList({ user, token, activeChatId, onSelectChat }) {
     console.log("🎉 New chat created:", newChat);
     fetchChats(); // Refresh the chat list
     onSelectChat(newChat._id); // Auto-select the new chat
+  };
+
+  const handleDeleteChat = async (chatId, e) => {
+    e.stopPropagation(); // Prevent chat selection when clicking delete
+
+    if (!window.confirm('Are you sure you want to delete this chat? All messages will be permanently deleted.')) {
+      return;
+    }
+
+    try {
+      setDeletingChatId(chatId);
+      console.log("🗑️ Deleting chat:", chatId);
+
+      await axios.delete(`${API_URL}/chats/${chatId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("✅ Chat deleted successfully");
+
+      // Remove chat from local state
+      setChats(chats.filter(chat => chat._id !== chatId));
+
+      // If deleted chat was active, clear selection
+      if (activeChatId === chatId) {
+        onSelectChat(null);
+      }
+    } catch (e) {
+      console.error("❌ Error deleting chat:", e);
+      alert(e.response?.data?.error || "Failed to delete chat");
+    } finally {
+      setDeletingChatId(null);
+    }
   };
 
   return (
@@ -124,50 +157,96 @@ export default function ChatList({ user, token, activeChatId, onSelectChat }) {
               chatName = otherUser?.username || "Unknown User";
             }
 
+            const isDeleting = deletingChatId === chat._id;
+
             return (
               <div
                 key={chat._id}
                 onClick={() => {
-                  console.log("📱 Selected chat:", chat._id);
-                  onSelectChat(chat._id);
+                  if (!isDeleting) {
+                    console.log("📱 Selected chat:", chat._id);
+                    onSelectChat(chat._id);
+                  }
                 }}
                 style={{
                   padding: "16px 20px",
-                  cursor: "pointer",
+                  cursor: isDeleting ? "not-allowed" : "pointer",
                   background:
                     activeChatId === chat._id ? "#1e293b" : "transparent",
                   borderBottom: "1px solid #1e293b",
                   transition: "background 0.2s ease",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  opacity: isDeleting ? 0.5 : 1,
                 }}
                 onMouseEnter={(e) => {
-                  if (activeChatId !== chat._id) {
+                  if (activeChatId !== chat._id && !isDeleting) {
                     e.currentTarget.style.background = "#1e293b50";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (activeChatId !== chat._id) {
+                  if (activeChatId !== chat._id && !isDeleting) {
                     e.currentTarget.style.background = "transparent";
                   }
                 }}
               >
-                <div
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: "500",
+                      color: "#f1f5f9",
+                      marginBottom: "4px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {chatName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      color: "#94a3b8",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {chat.latestMessage?.content || "No messages yet"}
+                  </div>
+                </div>
+
+                {/* Delete Button */}
+                <button
+                  onClick={(e) => handleDeleteChat(chat._id, e)}
+                  disabled={isDeleting}
                   style={{
-                    fontSize: "15px",
-                    fontWeight: "500",
-                    color: "#f1f5f9",
-                    marginBottom: "4px",
+                    marginLeft: "12px",
+                    padding: "6px 8px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#991b1b20",
+                    color: "#ef4444",
+                    fontSize: "12px",
+                    cursor: isDeleting ? "not-allowed" : "pointer",
+                    transition: "all 0.2s ease",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isDeleting) {
+                      e.target.style.background = "#991b1b40";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isDeleting) {
+                      e.target.style.background = "#991b1b20";
+                    }
                   }}
                 >
-                  {chatName}
-                </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#94a3b8",
-                  }}
-                >
-                  {chat.latestMessage?.content || "No messages yet"}
-                </div>
+                  {isDeleting ? "..." : "🗑️"}
+                </button>
               </div>
             );
           })

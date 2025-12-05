@@ -8,6 +8,7 @@ const authRoutes = require('./src/routes/auth.js');
 const chatRoutes = require('./src/routes/chats.js');
 const messageRoutes = require('./src/routes/messages');
 const userRoutes = require('./src/routes/users');
+const taskRoutes = require('./src/routes/tasks');
 const Message = require('./src/models/Message');
 const Chat = require('./src/models/Chat');
 
@@ -21,8 +22,7 @@ app.use('/auth', authRoutes);
 app.use('/chats', chatRoutes);
 app.use('/messages', messageRoutes);
 app.use('/users', userRoutes);
-// app.use('/chats', require('./routes/chats'));
-// app.use('/users', require('./routes/users'));
+app.use('/tasks', taskRoutes);
 
 const io = new Server(server, {
   cors: {
