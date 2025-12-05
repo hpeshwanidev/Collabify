@@ -45,41 +45,14 @@ export default function ChatPage({ user, token, onLogout }) {
         overflow: "hidden",
       }}
     >
-      {/* Logout Button - Top Right */}
-      <button
-        onClick={onLogout}
-        style={{
-          position: "absolute",
-          top: "20px",
-          right: "20px",
-          padding: "10px 20px",
-          borderRadius: "8px",
-          border: "1px solid #334155",
-          background: "#1e293b",
-          color: "#e2e8f0",
-          fontSize: "14px",
-          fontWeight: "500",
-          cursor: "pointer",
-          zIndex: 100,
-          transition: "all 0.2s ease",
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.background = "#334155";
-          e.target.style.borderColor = "#475569";
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.background = "#1e293b";
-          e.target.style.borderColor = "#334155";
-        }}
-      >
-        Logout
-      </button>
+    
 
       {/* Sidebar */}
       <Sidebar 
         activeView={activeView} 
         onViewChange={setActiveView} 
         user={user}
+        onLogout={onLogout}
       />
 
       {/* Main Content */}
